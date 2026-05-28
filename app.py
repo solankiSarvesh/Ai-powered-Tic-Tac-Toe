@@ -1,7 +1,5 @@
 import sys
 import os
-sys.path.insert(0, '/content')
-os.chdir('/content')
 
 import streamlit as st
 import time
