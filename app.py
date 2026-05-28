@@ -1,7 +1,5 @@
 import sys
-sys.path.insert(0, '/content')
 import os
-os.chdir('/content')
 from pathlib import Path
 
 # Ensure the folder containing app.py is always on sys.path and is the
