@@ -563,7 +563,7 @@ cols = st.columns(3)
 for i in range(9):
     with cols[i % 3]:
         disabled = s.game_over or s.board[i] != " "
-        if st.button("·", key=f"c{i}_{s.game_count}", disabled=disabled, label_visibility="visible"):
+        if st.button("·", key=f"c{i}_{s.game_count}", disabled=disabled):
             if not s.game_over and s.board[i] == " " and s.current == "X":
                 s.board[i] = "X"
                 r, c = divmod(i, 3)
