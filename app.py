@@ -26,6 +26,7 @@ st.markdown("""
     --o:#38bdf8; --og:#38bdf840;
     --gold:#fbbf24; --goldg:#fbbf2430;
     --text:#e2e8f0; --muted:#64748b; --muted2:#94a3b8;
+    --line:#2d4a7a;
 }
 *,*::before,*::after { box-sizing:border-box; }
 html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
@@ -44,6 +45,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 [data-testid="stDecoration"] { display:none; }
 [data-testid="stMainBlockContainer"] { padding-top:1.2rem!important; max-width:520px!important; }
 
+/* ── title ── */
 .ttl { text-align:center; margin-bottom:1.3rem; }
 .ttl-eye { font-size:.6rem; font-weight:600; letter-spacing:5px; text-transform:uppercase; color:var(--o); margin-bottom:.2rem; }
 .ttl-main { font-family:'Bebas Neue',sans-serif; font-size:4rem; letter-spacing:6px; line-height:1;
@@ -53,6 +55,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 .ttl-sub { font-size:.65rem; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:.2rem; }
 .ttl-line { width:56px; height:2px; background:linear-gradient(90deg,var(--x),var(--o)); margin:.7rem auto 0; border-radius:2px; }
 
+/* ── scoreboard ── */
 .scoreboard { display:flex; gap:10px; margin-bottom:1rem; justify-content:center; }
 .score-pill { flex:1; max-width:110px; background:var(--card); border:1px solid var(--border);
     border-radius:14px; padding:.85rem .5rem; text-align:center; position:relative; overflow:hidden; }
@@ -66,16 +69,139 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 .sp-o .score-num { color:var(--o); text-shadow:0 0 16px var(--og); }
 .score-lbl { font-size:.58rem; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-top:.2rem; }
 
-.status-wrap { margin-bottom:1rem; border-radius:12px; padding:.75rem 1.2rem;
+/* ── status ── */
+.status-wrap { margin-bottom:.8rem; border-radius:12px; padding:.75rem 1.2rem;
     text-align:center; font-size:.92rem; font-weight:500; letter-spacing:.5px;
     border:1px solid; position:relative; overflow:hidden; }
 .status-wrap::before { content:''; position:absolute; inset:0; opacity:.06; background:currentColor; }
-.st-x    { color:var(--x);    border-color:#f9731650; }
-.st-o    { color:var(--o);    border-color:#38bdf850; }
-.st-win  { color:var(--gold); border-color:#fbbf2480; animation:pulse-win 1.4s ease-in-out infinite; }
+.st-x    { color:var(--x);     border-color:#f9731650; }
+.st-o    { color:var(--o);     border-color:#38bdf850; }
+.st-win  { color:var(--gold);  border-color:#fbbf2480; animation:pulse-win 1.4s ease-in-out infinite; }
 .st-draw { color:var(--muted2);border-color:var(--border); }
 @keyframes pulse-win { 0%,100%{box-shadow:none;} 50%{box-shadow:0 0 22px var(--goldg);} }
 
+/* ── BOARD ──
+   Strategy: the visual board (hash lines + X/O marks) is pure HTML rendered
+   via st.markdown. Directly below it, a 3×3 grid of real Streamlit buttons
+   is rendered with ALL padding/gap stripped so they form a perfect 324×324
+   square that sits exactly over the visual board using negative top margin.
+   Button text is a single space — invisible — so they act as pure hit areas.
+── */
+.visual-board {
+    width: 324px;
+    height: 324px;
+    position: relative;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 108px);
+    grid-template-rows: repeat(3, 108px);
+}
+/* The two vertical and two horizontal hash lines */
+.visual-board::before {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    background:
+        linear-gradient(var(--line),var(--line)) calc(1*108px - 1px) 0 / 2px 100%,
+        linear-gradient(var(--line),var(--line)) calc(2*108px - 1px) 0 / 2px 100%,
+        linear-gradient(var(--line),var(--line)) 0 calc(1*108px - 1px) / 100% 2px,
+        linear-gradient(var(--line),var(--line)) 0 calc(2*108px - 1px) / 100% 2px;
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+.vcell {
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+}
+/* X mark */
+.mark-x { width:52px; height:52px; position:relative;
+    animation:pop .22s cubic-bezier(.34,1.56,.64,1) both; }
+.mark-x::before,.mark-x::after {
+    content:''; position:absolute; width:100%; height:4px;
+    background:var(--x); border-radius:3px; top:50%; left:0;
+    box-shadow:0 0 10px var(--xg),0 0 22px var(--xg);
+}
+.mark-x::before { transform:translateY(-50%) rotate(45deg); }
+.mark-x::after  { transform:translateY(-50%) rotate(-45deg); }
+/* O mark */
+.mark-o {
+    width:50px; height:50px; border-radius:50%;
+    border:4px solid var(--o);
+    box-shadow:0 0 10px var(--og),0 0 22px var(--og),inset 0 0 10px var(--og);
+    animation:pop .22s cubic-bezier(.34,1.56,.64,1) both;
+}
+/* win highlight */
+.vcell.win { background:rgba(251,191,36,.07); border-radius:8px; }
+.vcell.win .mark-x::before,.vcell.win .mark-x::after {
+    background:var(--gold)!important; box-shadow:0 0 14px var(--goldg),0 0 28px var(--goldg)!important; }
+.vcell.win .mark-o {
+    border-color:var(--gold)!important;
+    box-shadow:0 0 14px var(--goldg),0 0 28px var(--goldg),inset 0 0 10px var(--goldg)!important; }
+@keyframes pop {
+    0%  { transform:scale(0) rotate(-15deg); opacity:0; }
+    100%{ transform:scale(1) rotate(0);      opacity:1; }
+}
+
+/* ── button grid overlay ──
+   The container for the 3 st.columns rows is pulled up by exactly 324px
+   (the board height) so it sits perfectly on top of the visual board.
+   All Streamlit padding is zeroed out so buttons tile seamlessly.
+── */
+.btn-grid-wrap {
+    margin-top: -332px;   /* pull up over the visual board */
+    margin-bottom: 1.4rem;
+}
+
+/* Zero out every wrapper Streamlit adds around columns */
+.btn-grid-wrap [data-testid="stHorizontalBlock"] {
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 324px !important;
+    flex-wrap: nowrap !important;
+}
+.btn-grid-wrap [data-testid="column"],
+.btn-grid-wrap [data-testid="stColumn"] {
+    padding: 0 !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+    width: 108px !important;
+    flex: 0 0 108px !important;
+}
+.btn-grid-wrap div[data-testid="stButton"] {
+    width: 108px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+.btn-grid-wrap div[data-testid="stButton"] > button {
+    width: 108px !important;
+    height: 108px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    color: transparent !important;
+    font-size: 1px !important;
+    cursor: pointer !important;
+}
+.btn-grid-wrap div[data-testid="stButton"] > button:hover {
+    background: rgba(255,255,255,.05) !important;
+    border-radius: 8px !important;
+}
+.btn-grid-wrap div[data-testid="stButton"] > button:disabled {
+    cursor: default !important;
+    background: transparent !important;
+    opacity: 1 !important;
+}
+/* center the button rows */
+.btn-grid-wrap > div {
+    display: flex !important;
+    justify-content: center !important;
+}
+
+/* ── sidebar ── */
 .sb-sec { font-size:.6rem; font-weight:600; letter-spacing:4px; text-transform:uppercase;
     color:var(--o); margin-bottom:.45rem; padding-bottom:.3rem; border-bottom:1px solid var(--border); }
 .diff-dots { display:flex; gap:5px; justify-content:center; margin-top:.4rem; }
@@ -89,8 +215,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
     width:100%!important; height:auto!important; padding:.45rem 1rem!important;
 }
 [data-testid="stSidebar"] .stButton>button:hover {
-    background:var(--border2)!important; border-color:var(--o)!important; color:var(--o)!important;
-}
+    background:var(--border2)!important; border-color:var(--o)!important; color:var(--o)!important; }
 .move-log { background:var(--card); border:1px solid var(--border); border-radius:10px;
     padding:.65rem .85rem; max-height:150px; overflow-y:auto; font-size:.73rem; line-height:1.9; }
 .move-log::-webkit-scrollbar { width:3px; }
@@ -103,7 +228,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Session state ──────────────────────────────────────────────────────────────
+# ── session state ──────────────────────────────────────────────────────────────
 def init_state():
     for k, v in {
         "board": create_board(), "current": "X", "game_over": False,
@@ -119,28 +244,7 @@ def init_state():
 init_state()
 s = st.session_state
 
-# ── Handle click from board iframe via query param ─────────────────────────────
-params = st.query_params
-if "move" in params:
-    idx = int(params["move"])
-    st.query_params.clear()
-    human_can_move = (s.mode == "vs_human") or (s.current == "X")
-    if not s.game_over and s.board[idx] == " " and human_can_move:
-        player = s.current
-        s.board[idx] = player
-        r2, c2 = divmod(idx, 3)
-        s.move_log.append(f"{player} · r{r2+1} c{c2+1}")
-        combo = check_winner(s.board, player)
-        if combo:
-            s.winner = player; s.win_combo = combo
-            s.game_over = True; s.scores[player] += 1
-        elif is_draw(s.board):
-            s.game_over = True; s.scores["Draw"] += 1
-        else:
-            s.current = "O" if player == "X" else "X"
-    st.rerun()
-
-# ── Auto-restart ───────────────────────────────────────────────────────────────
+# ── auto-restart ───────────────────────────────────────────────────────────────
 if s.game_over and s.restart_at is None:
     s.restart_at = time.time() + 2.5
 
@@ -150,7 +254,7 @@ if s.restart_at is not None and time.time() >= s.restart_at:
     s.game_count += 1; s.restart_at = None
     st.rerun()
 
-# ── Sidebar ────────────────────────────────────────────────────────────────────
+# ── sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="sb-sec">Game Mode</div>', unsafe_allow_html=True)
     mode = st.radio("", ["vs_ai", "vs_human"],
@@ -199,7 +303,7 @@ with st.sidebar:
         st.success("Model saved!")
         st.rerun()
 
-# ── Title ──────────────────────────────────────────────────────────────────────
+# ── title ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="ttl">
   <div class="ttl-eye">Minimax · Q-Learning · Alpha-Beta</div>
@@ -213,7 +317,7 @@ st.markdown(
     f'<div class="game-badge">GAME &nbsp;<b>#{s.game_count}</b></div></div>',
     unsafe_allow_html=True)
 
-# ── Scoreboard ─────────────────────────────────────────────────────────────────
+# ── scoreboard ─────────────────────────────────────────────────────────────────
 sc = s.scores
 p1 = "YOU" if s.mode == "vs_ai" else "P1"
 p2 = "AI"  if s.mode == "vs_ai" else "P2"
@@ -224,7 +328,7 @@ st.markdown(f"""
   <div class="score-pill sp-o"><div class="score-num">{sc['O']}</div><div class="score-lbl">{p2} · O</div></div>
 </div>""", unsafe_allow_html=True)
 
-# ── Status ─────────────────────────────────────────────────────────────────────
+# ── status ─────────────────────────────────────────────────────────────────────
 if s.winner == "X":
     msg, cls = ("🎉  You Win!" if s.mode == "vs_ai" else "🎉  Player X Wins!"), "st-win"
 elif s.winner == "O":
@@ -244,118 +348,51 @@ if s.restart_at:
 
 st.markdown(f'<div class="status-wrap {cls}">{msg}</div>', unsafe_allow_html=True)
 
-# ── Board rendered as self-contained HTML component ────────────────────────────
+# ── visual board (HTML, no interaction) ───────────────────────────────────────
 win_set = set(s.win_combo) if s.win_combo else set()
-human_can_move = (not s.game_over) and ((s.mode == "vs_human") or (s.current == "X"))
 
-def cell_content(idx):
+def vcell(idx):
     val = s.board[idx]
-    if val == "X":
-        win = "win" if idx in win_set else ""
-        return f'<div class="mark mark-x {win}"></div>'
-    if val == "O":
-        win = "win" if idx in win_set else ""
-        return f'<div class="mark mark-o {win}"></div>'
-    return ""
+    win_cls = " win" if idx in win_set else ""
+    if val == "X":   inner = '<div class="mark-x"></div>'
+    elif val == "O": inner = '<div class="mark-o"></div>'
+    else:            inner = ""
+    return f'<div class="vcell{win_cls}">{inner}</div>'
 
-cells_html = ""
-for i in range(9):
-    clickable = human_can_move and s.board[i] == " "
-    cursor    = "pointer" if clickable else "default"
-    onclick   = f"move({i})" if clickable else ""
-    hover_cls = "hoverable" if clickable else ""
-    cells_html += f'<div class="cell {hover_cls}" style="cursor:{cursor}" onclick="{onclick}">{cell_content(i)}</div>'
+st.markdown(
+    '<div class="visual-board">' +
+    "".join(vcell(i) for i in range(9)) +
+    "</div>",
+    unsafe_allow_html=True)
 
-board_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ background:transparent; display:flex; justify-content:center; padding:4px; }}
+# ── button grid (pulled up over visual board via CSS) ─────────────────────────
+st.markdown('<div class="btn-grid-wrap">', unsafe_allow_html=True)
 
-  .board {{
-    display: grid;
-    grid-template-columns: repeat(3, 108px);
-    grid-template-rows:    repeat(3, 108px);
-    position: relative;
-  }}
+human_can_move = (s.mode == "vs_human") or (s.current == "X")
 
-  /* Hash lines using box-shadow on a single overlay element */
-  .board::before {{
-    content: '';
-    position: absolute;
-    inset: 12px;
-    background:
-      /* vertical lines */
-      linear-gradient(#2d4a7a,#2d4a7a) 36% 0 / 2px 100%,
-      linear-gradient(#2d4a7a,#2d4a7a) 63% 0 / 2px 100%,
-      /* horizontal lines */
-      linear-gradient(#2d4a7a,#2d4a7a) 0 36% / 100% 2px,
-      linear-gradient(#2d4a7a,#2d4a7a) 0 63% / 100% 2px;
-    background-repeat: no-repeat;
-    pointer-events: none;
-    z-index: 1;
-  }}
+for row in range(3):
+    cols = st.columns(3)
+    for col in range(3):
+        idx = row * 3 + col
+        val = s.board[idx]
+        disabled = s.game_over or val != " " or not human_can_move
+        with cols[col]:
+            if st.button(" ", key=f"b{idx}_{s.game_count}", disabled=disabled):
+                player = s.current
+                s.board[idx] = player
+                r2, c2 = divmod(idx, 3)
+                s.move_log.append(f"{player} · r{r2+1} c{c2+1}")
+                combo = check_winner(s.board, player)
+                if combo:
+                    s.winner = player; s.win_combo = combo
+                    s.game_over = True; s.scores[player] += 1
+                elif is_draw(s.board):
+                    s.game_over = True; s.scores["Draw"] += 1
+                else:
+                    s.current = "O" if player == "X" else "X"
+                st.rerun()
 
-  .cell {{
-    width: 108px; height: 108px;
-    display: flex; align-items: center; justify-content: center;
-    position: relative; z-index: 2;
-    transition: background .15s;
-    border-radius: 8px;
-  }}
-  .cell.hoverable:hover {{ background: rgba(255,255,255,.05); }}
-
-  /* X mark */
-  .mark {{ position:absolute; pointer-events:none;
-    animation: pop .22s cubic-bezier(.34,1.56,.64,1) both; }}
-  .mark-x {{ width:52px; height:52px; }}
-  .mark-x::before, .mark-x::after {{
-    content:''; position:absolute; width:100%; height:4px;
-    background:#f97316; border-radius:3px; top:50%; left:0;
-    box-shadow: 0 0 10px #f9731660, 0 0 22px #f9731640;
-  }}
-  .mark-x::before {{ transform:translateY(-50%) rotate(45deg); }}
-  .mark-x::after  {{ transform:translateY(-50%) rotate(-45deg); }}
-  .mark-x.win::before, .mark-x.win::after {{
-    background:#fbbf24;
-    box-shadow: 0 0 14px #fbbf2460, 0 0 28px #fbbf2440;
-  }}
-
-  /* O mark */
-  .mark-o {{
-    width:50px; height:50px; border-radius:50%;
-    border:4px solid #38bdf8;
-    box-shadow: 0 0 10px #38bdf860, 0 0 22px #38bdf840, inset 0 0 10px #38bdf840;
-  }}
-  .mark-o.win {{
-    border-color:#fbbf24;
-    box-shadow: 0 0 14px #fbbf2460, 0 0 28px #fbbf2440, inset 0 0 10px #fbbf2440;
-  }}
-
-  @keyframes pop {{
-    0%   {{ transform:scale(0) rotate(-15deg); opacity:0; }}
-    100% {{ transform:scale(1) rotate(0);      opacity:1; }}
-  }}
-</style>
-</head>
-<body>
-  <div class="board">{cells_html}</div>
-  <script>
-    function move(idx) {{
-      // Navigate the parent Streamlit page with ?move=idx to trigger rerun
-      const url = new URL(window.parent.location.href);
-      url.searchParams.set('move', idx);
-      window.parent.location.href = url.toString();
-    }}
-  </script>
-</body>
-</html>
-"""
-
-import streamlit.components.v1 as components
-components.html(board_html, height=340, scrolling=False)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── AI move ────────────────────────────────────────────────────────────────────
 if not s.game_over and s.current == "O" and s.mode == "vs_ai":
@@ -375,12 +412,12 @@ if not s.game_over and s.current == "O" and s.mode == "vs_ai":
             s.current = "X"
     st.rerun()
 
-# ── Keep reruns going while waiting to auto-restart ───────────────────────────
+# ── countdown rerun ────────────────────────────────────────────────────────────
 if s.restart_at is not None:
     time.sleep(1)
     st.rerun()
 
-# ── Footer ─────────────────────────────────────────────────────────────────────
+# ── footer ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin-top:1.5rem;padding-top:1rem;
      border-top:1px solid #1e2d4a;font-size:.6rem;
