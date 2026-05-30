@@ -16,7 +16,6 @@ if not Path(MODEL_PATH).exists():
 st.set_page_config(page_title="TicTacToe AI", page_icon="✦",
                    layout="centered", initial_sidebar_state="expanded")
 
-# ── CSS ────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap');
@@ -27,7 +26,6 @@ st.markdown("""
     --o:#38bdf8; --og:#38bdf840;
     --gold:#fbbf24; --goldg:#fbbf2430;
     --text:#e2e8f0; --muted:#64748b; --muted2:#94a3b8;
-    --line:#2d4a7a; --cell:108px;
 }
 *,*::before,*::after { box-sizing:border-box; }
 html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
@@ -46,7 +44,6 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 [data-testid="stDecoration"] { display:none; }
 [data-testid="stMainBlockContainer"] { padding-top:1.2rem!important; max-width:520px!important; }
 
-/* TITLE */
 .ttl { text-align:center; margin-bottom:1.3rem; }
 .ttl-eye { font-size:.6rem; font-weight:600; letter-spacing:5px; text-transform:uppercase; color:var(--o); margin-bottom:.2rem; }
 .ttl-main { font-family:'Bebas Neue',sans-serif; font-size:4rem; letter-spacing:6px; line-height:1;
@@ -56,7 +53,6 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 .ttl-sub { font-size:.65rem; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:.2rem; }
 .ttl-line { width:56px; height:2px; background:linear-gradient(90deg,var(--x),var(--o)); margin:.7rem auto 0; border-radius:2px; }
 
-/* SCOREBOARD */
 .scoreboard { display:flex; gap:10px; margin-bottom:1rem; justify-content:center; }
 .score-pill { flex:1; max-width:110px; background:var(--card); border:1px solid var(--border);
     border-radius:14px; padding:.85rem .5rem; text-align:center; position:relative; overflow:hidden; }
@@ -70,136 +66,29 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
 .sp-o .score-num { color:var(--o); text-shadow:0 0 16px var(--og); }
 .score-lbl { font-size:.58rem; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-top:.2rem; }
 
-/* STATUS */
 .status-wrap { margin-bottom:1rem; border-radius:12px; padding:.75rem 1.2rem;
     text-align:center; font-size:.92rem; font-weight:500; letter-spacing:.5px;
     border:1px solid; position:relative; overflow:hidden; }
 .status-wrap::before { content:''; position:absolute; inset:0; opacity:.06; background:currentColor; }
-.st-x    { color:var(--x);     border-color:#f9731650; }
-.st-o    { color:var(--o);     border-color:#38bdf850; }
-.st-win  { color:var(--gold);  border-color:#fbbf2480; animation:pulse-win 1.4s ease-in-out infinite; }
+.st-x    { color:var(--x);    border-color:#f9731650; }
+.st-o    { color:var(--o);    border-color:#38bdf850; }
+.st-win  { color:var(--gold); border-color:#fbbf2480; animation:pulse-win 1.4s ease-in-out infinite; }
 .st-draw { color:var(--muted2);border-color:var(--border); }
 @keyframes pulse-win { 0%,100%{box-shadow:none;} 50%{box-shadow:0 0 22px var(--goldg);} }
 
-/* ══════════════════════════════════════════════
-   BOARD — the correct approach:
-   We wrap the whole 3×3 in a single container div (.board-wrap).
-   Inside it we place 3 row-divs (.brow), each with 3 cell-divs (.bcell).
-   The hash lines come from borders on .bcell.
-   Each .bcell contains:
-     1. a visual mark div (pointer-events:none, z-index:1)
-     2. a Streamlit button that is stretched to fill the cell (z-index:2)
-   Because the mark is a sibling BEFORE the button in DOM order and both
-   are position:absolute inside a position:relative .bcell, they stack
-   correctly — mark behind, button on top (clickable), mark visible through
-   the transparent button.
-══════════════════════════════════════════════ */
-.board-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 1.4rem;
-}
-.brow {
-    display: flex;
-}
-.bcell {
-    width: var(--cell);
-    height: var(--cell);
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-/* Hash lines via borders */
-.brow:nth-child(1) .bcell,
-.brow:nth-child(2) .bcell { border-bottom: 2.5px solid var(--line); }
-.bcell:nth-child(1),
-.bcell:nth-child(2)        { border-right:  2.5px solid var(--line); }
-
-/* Win cell glow */
-.bcell.win-cell { background: rgba(251,191,36,.07); border-radius:6px; }
-
-/* Marks — centered, non-interactive */
-.mark-wrap {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%,-50%);
-    pointer-events: none;
-    z-index: 1;
-    animation: pop-in .22s cubic-bezier(.34,1.56,.64,1) both;
-}
-.mark-x { width:52px; height:52px; position:relative; }
-.mark-x::before,.mark-x::after {
-    content:''; position:absolute; width:100%; height:4px;
-    background:var(--x); border-radius:3px; top:50%; left:0;
-    box-shadow:0 0 10px var(--xg),0 0 22px var(--xg);
-}
-.mark-x::before { transform:translateY(-50%) rotate(45deg); }
-.mark-x::after  { transform:translateY(-50%) rotate(-45deg); }
-.mark-o {
-    width:48px; height:48px; border-radius:50%;
-    border:4px solid var(--o);
-    box-shadow:0 0 10px var(--og),0 0 22px var(--og),inset 0 0 10px var(--og);
-}
-/* Win color override */
-.win-cell .mark-x::before,.win-cell .mark-x::after {
-    background:var(--gold)!important;
-    box-shadow:0 0 14px var(--goldg),0 0 28px var(--goldg)!important;
-}
-.win-cell .mark-o {
-    border-color:var(--gold)!important;
-    box-shadow:0 0 14px var(--goldg),0 0 28px var(--goldg),inset 0 0 10px var(--goldg)!important;
-}
-@keyframes pop-in {
-    0%  { transform:translate(-50%,-50%) scale(0) rotate(-15deg); opacity:0; }
-    100%{ transform:translate(-50%,-50%) scale(1) rotate(0);       opacity:1; }
-}
-
-/* Streamlit button stretched to fill .bcell exactly */
-.bcell > div[data-testid="stButton"],
-.bcell > div[data-testid="stButton"] > button {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    color: transparent !important;
-    font-size: 1px !important;
-    cursor: pointer !important;
-    z-index: 2 !important;
-    transition: background .15s;
-}
-.bcell > div[data-testid="stButton"] > button:hover {
-    background: rgba(255,255,255,.05) !important;
-    border-radius: 6px !important;
-}
-.bcell > div[data-testid="stButton"] > button:disabled {
-    cursor: default !important;
-    background: transparent !important;
-    opacity: 1 !important;
-}
-
-/* SIDEBAR */
 .sb-sec { font-size:.6rem; font-weight:600; letter-spacing:4px; text-transform:uppercase;
     color:var(--o); margin-bottom:.45rem; padding-bottom:.3rem; border-bottom:1px solid var(--border); }
 .diff-dots { display:flex; gap:5px; justify-content:center; margin-top:.4rem; }
 .diff-dot  { width:8px; height:8px; border-radius:50%; background:var(--border2); }
 .diff-dot.on { background:var(--o); box-shadow:0 0 6px var(--og); }
-[data-testid="stSidebar"] .stButton > button {
+[data-testid="stSidebar"] .stButton>button {
     background:var(--card2)!important; border:1px solid var(--border2)!important;
     color:var(--text)!important; border-radius:10px!important;
     font-family:'Outfit',sans-serif!important; font-size:.82rem!important;
     font-weight:500!important; transition:all .2s!important;
-    position:relative!important; inset:auto!important;
     width:100%!important; height:auto!important; padding:.45rem 1rem!important;
 }
-[data-testid="stSidebar"] .stButton > button:hover {
+[data-testid="stSidebar"] .stButton>button:hover {
     background:var(--border2)!important; border-color:var(--o)!important; color:var(--o)!important;
 }
 .move-log { background:var(--card); border:1px solid var(--border); border-radius:10px;
@@ -230,9 +119,30 @@ def init_state():
 init_state()
 s = st.session_state
 
-# ── Auto-restart logic ─────────────────────────────────────────────────────────
+# ── Handle click from board iframe via query param ─────────────────────────────
+params = st.query_params
+if "move" in params:
+    idx = int(params["move"])
+    st.query_params.clear()
+    human_can_move = (s.mode == "vs_human") or (s.current == "X")
+    if not s.game_over and s.board[idx] == " " and human_can_move:
+        player = s.current
+        s.board[idx] = player
+        r2, c2 = divmod(idx, 3)
+        s.move_log.append(f"{player} · r{r2+1} c{c2+1}")
+        combo = check_winner(s.board, player)
+        if combo:
+            s.winner = player; s.win_combo = combo
+            s.game_over = True; s.scores[player] += 1
+        elif is_draw(s.board):
+            s.game_over = True; s.scores["Draw"] += 1
+        else:
+            s.current = "O" if player == "X" else "X"
+    st.rerun()
+
+# ── Auto-restart ───────────────────────────────────────────────────────────────
 if s.game_over and s.restart_at is None:
-    s.restart_at = time.time() + 2.5          # schedule restart in 2.5 s
+    s.restart_at = time.time() + 2.5
 
 if s.restart_at is not None and time.time() >= s.restart_at:
     s.board = create_board(); s.current = "X"; s.game_over = False
@@ -334,66 +244,118 @@ if s.restart_at:
 
 st.markdown(f'<div class="status-wrap {cls}">{msg}</div>', unsafe_allow_html=True)
 
-# ── Board ──────────────────────────────────────────────────────────────────────
+# ── Board rendered as self-contained HTML component ────────────────────────────
 win_set = set(s.win_combo) if s.win_combo else set()
+human_can_move = (not s.game_over) and ((s.mode == "vs_human") or (s.current == "X"))
 
-# Build the entire board as one HTML block containing .bcell divs,
-# then inject Streamlit buttons into the same DOM positions via columns.
-# The trick: open a .board-wrap, open .brow divs in HTML, but put the
-# actual Streamlit buttons using st.columns so they remain interactive.
-# We use a pure CSS grid approach: each .bcell is a fixed-size container
-# and the button inside it uses position:absolute inset:0 to fill it.
+def cell_content(idx):
+    val = s.board[idx]
+    if val == "X":
+        win = "win" if idx in win_set else ""
+        return f'<div class="mark mark-x {win}"></div>'
+    if val == "O":
+        win = "win" if idx in win_set else ""
+        return f'<div class="mark mark-o {win}"></div>'
+    return ""
 
-for row in range(3):
-    # Open the row container
-    row_open = '<div class="brow">'
-    if row == 0:
-        row_open = '<div class="board-wrap">' + row_open
-    st.markdown(row_open, unsafe_allow_html=True)
+cells_html = ""
+for i in range(9):
+    clickable = human_can_move and s.board[i] == " "
+    cursor    = "pointer" if clickable else "default"
+    onclick   = f"move({i})" if clickable else ""
+    hover_cls = "hoverable" if clickable else ""
+    cells_html += f'<div class="cell {hover_cls}" style="cursor:{cursor}" onclick="{onclick}">{cell_content(i)}</div>'
 
-    cols = st.columns(3)
-    for col in range(3):
-        idx    = row * 3 + col
-        val    = s.board[idx]
-        is_win = idx in win_set
-        win_cls = "win-cell" if is_win else ""
+board_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ background:transparent; display:flex; justify-content:center; padding:4px; }}
 
-        # Visual mark HTML
-        if val == "X":
-            mark_html = '<div class="mark-wrap"><div class="mark-x"></div></div>'
-        elif val == "O":
-            mark_html = '<div class="mark-wrap"><div class="mark-o"></div></div>'
-        else:
-            mark_html = ""
+  .board {{
+    display: grid;
+    grid-template-columns: repeat(3, 108px);
+    grid-template-rows:    repeat(3, 108px);
+    position: relative;
+  }}
 
-        with cols[col]:
-            # Open cell, inject mark, then the button sits on top via CSS
-            st.markdown(f'<div class="bcell {win_cls}">{mark_html}', unsafe_allow_html=True)
-            # In vs_ai mode only X (human) can click; in vs_human both players click
-            human_can_move = (s.mode == "vs_human") or (s.current == "X")
-            disabled = s.game_over or val != " " or not human_can_move
-            if st.button(" ", key=f"c{idx}_{s.game_count}", disabled=disabled):
-                if not s.game_over and val == " ":
-                    player = s.current
-                    s.board[idx] = player
-                    r2, c2 = divmod(idx, 3)
-                    s.move_log.append(f"{player} · r{r2+1} c{c2+1}")
-                    combo = check_winner(s.board, player)
-                    if combo:
-                        s.winner = player; s.win_combo = combo
-                        s.game_over = True; s.scores[player] += 1
-                    elif is_draw(s.board):
-                        s.game_over = True; s.scores["Draw"] += 1
-                    else:
-                        s.current = "O" if player == "X" else "X"
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)  # close .bcell
+  /* Hash lines using box-shadow on a single overlay element */
+  .board::before {{
+    content: '';
+    position: absolute;
+    inset: 12px;
+    background:
+      /* vertical lines */
+      linear-gradient(#2d4a7a,#2d4a7a) 36% 0 / 2px 100%,
+      linear-gradient(#2d4a7a,#2d4a7a) 63% 0 / 2px 100%,
+      /* horizontal lines */
+      linear-gradient(#2d4a7a,#2d4a7a) 0 36% / 100% 2px,
+      linear-gradient(#2d4a7a,#2d4a7a) 0 63% / 100% 2px;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 1;
+  }}
 
-    # Close the row
-    row_close = '</div>'
-    if row == 2:
-        row_close += '</div>'   # close .board-wrap
-    st.markdown(row_close, unsafe_allow_html=True)
+  .cell {{
+    width: 108px; height: 108px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; z-index: 2;
+    transition: background .15s;
+    border-radius: 8px;
+  }}
+  .cell.hoverable:hover {{ background: rgba(255,255,255,.05); }}
+
+  /* X mark */
+  .mark {{ position:absolute; pointer-events:none;
+    animation: pop .22s cubic-bezier(.34,1.56,.64,1) both; }}
+  .mark-x {{ width:52px; height:52px; }}
+  .mark-x::before, .mark-x::after {{
+    content:''; position:absolute; width:100%; height:4px;
+    background:#f97316; border-radius:3px; top:50%; left:0;
+    box-shadow: 0 0 10px #f9731660, 0 0 22px #f9731640;
+  }}
+  .mark-x::before {{ transform:translateY(-50%) rotate(45deg); }}
+  .mark-x::after  {{ transform:translateY(-50%) rotate(-45deg); }}
+  .mark-x.win::before, .mark-x.win::after {{
+    background:#fbbf24;
+    box-shadow: 0 0 14px #fbbf2460, 0 0 28px #fbbf2440;
+  }}
+
+  /* O mark */
+  .mark-o {{
+    width:50px; height:50px; border-radius:50%;
+    border:4px solid #38bdf8;
+    box-shadow: 0 0 10px #38bdf860, 0 0 22px #38bdf840, inset 0 0 10px #38bdf840;
+  }}
+  .mark-o.win {{
+    border-color:#fbbf24;
+    box-shadow: 0 0 14px #fbbf2460, 0 0 28px #fbbf2440, inset 0 0 10px #fbbf2440;
+  }}
+
+  @keyframes pop {{
+    0%   {{ transform:scale(0) rotate(-15deg); opacity:0; }}
+    100% {{ transform:scale(1) rotate(0);      opacity:1; }}
+  }}
+</style>
+</head>
+<body>
+  <div class="board">{cells_html}</div>
+  <script>
+    function move(idx) {{
+      // Navigate the parent Streamlit page with ?move=idx to trigger rerun
+      const url = new URL(window.parent.location.href);
+      url.searchParams.set('move', idx);
+      window.parent.location.href = url.toString();
+    }}
+  </script>
+</body>
+</html>
+"""
+
+import streamlit.components.v1 as components
+components.html(board_html, height=340, scrolling=False)
 
 # ── AI move ────────────────────────────────────────────────────────────────────
 if not s.game_over and s.current == "O" and s.mode == "vs_ai":
@@ -420,7 +382,7 @@ if s.restart_at is not None:
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center;margin-top:2rem;padding-top:1rem;
+<div style="text-align:center;margin-top:1.5rem;padding-top:1rem;
      border-top:1px solid #1e2d4a;font-size:.6rem;
      letter-spacing:3px;color:#334155;text-transform:uppercase">
   Tic Tac Toe · AI · Q-Learning · Minimax · Alpha-Beta
